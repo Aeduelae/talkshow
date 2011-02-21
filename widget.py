@@ -62,8 +62,8 @@ class Label(Widget):
     FONT = "Helvetica"
     WEIGHT = -100
     def __init__(self, parent, name, x, y, size, text=None, font=None, color="#ffffff"):
-        self.shadow = Text(None, "shadow", 2, 2, h=size, text=text if text else name, color="#000000", opacity = 0.4, font=font if font else self.FONT) 
-        self.fg = Text(None, "text", 0,0, h=size, text=text if text else name, color=color, opacity=0.9,font=font if font else self.FONT) 
+        self.shadow = Text(None, "shadow", 2, 2, h=size, text=text if text else name, color="#000000", opacity = 0.4, font=font if font else self.FONT)
+        self.fg = Text    (None, "text",   0, 0, h=size, text=text if text else name, color=color, opacity=0.9,font=font if font else self.FONT) 
 
         Widget.__init__(self, parent, name, x = x, y = y, w = self.shadow.w + 2, h = self.shadow.h + 2)
         self.shadow.parent = self.fg.parent = self
@@ -223,6 +223,9 @@ class EngraveSettingsInner:
 class KnobSettings:
     inner_radius = 10
     outer_radius = 12
+    
+    #inner_radius = 15
+    #outer_radius = 18
     
     shadow_offset = 5
     shadow_blur = 4
