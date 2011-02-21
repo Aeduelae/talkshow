@@ -1,4 +1,4 @@
-﻿import os
+import os
 import math
 from wrappers import *
 from widget import *
@@ -123,7 +123,7 @@ class Grid(Widget):
             self.delegate.onFieldClicked(field)
 
     def enterFIeld(self, field):
-        print "enterFIeld", field
+        
         if field != None:
             for f in self:
                 if f != field:
@@ -143,16 +143,25 @@ class Grid(Widget):
        
 class Talkshow(Widget):
     def __init__(self, screen):
-        Widget.__init__(self, screen, "Talkshow", w=screen.w, h=screen.h)     
-        self.bg = Rect(self, "bg",  w = self.w , h=self.h-100, x=0, y=40, color="#202020")
-        self.gridContainer = Widget(self, "gridContainer", w = self.w - 20, h=self.h-20-100, x=10, y=50)
-
-        b = self.quitButton = Button(self, "quitbutton", self.w - 40, 0, 40, 40, handler = self.quit, text='X')        
-
+        Widget.__init__(self, screen, "Talkshow", w=screen.w, h=screen.h)
+         
+        #self.bg = Rect(self, "bg",  w = self.w , h=self.h-100, x=0, y=40, color="#202020")
+       
+        #self.gridContainer  = Widget(self, "gridContainer", w = self.w - 20, h=self.h-20-100, x=10, y=50)
         
-        b = self.backButton = Button(self, "backbutton", 20, self.h - 100 + 50, 100, 50, handler = self.back, text='<<')        
-        self.homeButton = Button(self, "homebutton", self.w/2 - 100 , self.h - 100 + 50, 200, 50, handler = self.home, text="Start")
-        self.volumeSlider = Slider(self, "volume", self.w - 200 - 20 , self.h - 100 + 50, 200, 50, action = self.setVolume)
+        #b = self.backButton = Button(self, "backbutton", 20                , self.h - 100 + 50, 100, 50, handler = self.back, text='<<')        
+        #self.homeButton     = Button(self, "homebutton", self.w/2 - 100    , self.h - 100 + 50, 200, 50, handler = self.home, text="Start")
+        #self.volumeSlider   = Slider(self, "volume"    , self.w - 200 - 20 , self.h - 100 + 50, 200, 50, action = self.setVolume)
+        #self.volumeSlider.knobPosition = 1.0 
+        
+        self.bg = Rect(self, "bg",  w = self.w , h=self.h-20-200, x=0, y=80, color="#202020")
+        self.gridContainer  = Widget(self, "gridContainer", w = self.w - 20, h=self.h-40-200, x=10, y=80+10)
+
+        b = self.quitButton = Button(self, "quitbutton", self.w - 80, 0, 80, 80, handler = self.quit, text='X')        
+
+        b = self.backButton = Button(self, "backbutton", 20                , self.h - 200 + 80, 100, 100, handler = self.back, text='<<')        
+        self.homeButton     = Button(self, "homebutton", self.w/2 - 100    , self.h - 200 + 80, 200, 100, handler = self.home, text="Start")
+        self.volumeSlider   = Slider(self, "volume"    , self.w - 200 - 20 , self.h - 200 + 80, 200, 100, action = self.setVolume)
         self.volumeSlider.knobPosition = 1.0
         
         self.count = 9        
@@ -188,7 +197,7 @@ class Talkshow(Widget):
             
             if f.index<len(self.items):
               subfields = self.subdirs(self.pathPrefix, self.pathForField(f.index))
-              print "subfields", subfields
+              
               if len(subfields)>0:
                   #self.path = self.pathForField(f.index)     
 
@@ -238,15 +247,16 @@ class Talkshow(Widget):
             
         
     def setVolume(self, v):
-        print "Volume", v
+        #print "Volume", v
         #tubifex.volume = v
         Sound.setGlobalVolume(v)
         
     def back(self):
         l = self.path.split("/")
+
         if l:
             self.path= "/".join(l[:-1])
-            self.gridFromPath()
+            self.gridFromPath(("#000000",self.path))
             self.cleanUp()
   
     def home(self):
@@ -270,7 +280,7 @@ class Talkshow(Widget):
         self.path = path
         #print items
         self.items =  self.subdirs(self.pathPrefix, self.path)
-        print self.items
+        #print self.items
         self.count = len(self.items)
         if self.count:
             self.newGrid(color)
