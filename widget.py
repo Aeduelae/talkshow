@@ -275,50 +275,52 @@ class Scrollbar(Widget):
     def __init__(self, parent, name, x, y, w, h, action=None):
         Widget.__init__(self, parent, name, x, y, w, h)        
         self.outline = Box(self, "outline", w, h, s = EngraveSettingsOuter)        
-        b = self.bar = Box(self, "bar", w/2, 39, s=BarSettings)
+        b = self.bar = Box(self, "bar", 39, h/2, s=BarSettings)
         b.x, b.y = 2,2
         self.dragOrigin = None
         self.action = action
         self.value = None
-        self.minmax = (2, self.outline.x + self.outline.w - self.bar.w + 2)
+        self.minmax = (self.outline.y + self.outline.h - self.bar.h + 2,2)
        
     def onMouseButtonDown(self, button, x, y):
-        #print "Scrollbar click at ", x, y
- 
-        if x > self.bar.x + self.bar.w:
-            self.bar.x += self.bar.w
+        
+        if y > self.bar.y + self.bar.h:
+            self.bar.y += self.bar.h
             self.enforceConstrains()
-        elif x < self.bar.x:
-            self.bar.x -= self.bar.w
+        elif y < self.bar.y:
+            self.bar.y -= self.bar.h
             self.enforceConstrains()
-        elif x > self.bar.x and x < self.bar.x + self.bar.w:
+        elif y > self.bar.y and y < self.bar.y + self.bar.h:
             self.captureMouse()
-            self.originalBarX = self.bar.x
-            self.dragOrigin = x
+            self.originalBarY = self.bar.y
+            self.dragOrigin = y
     
     def onMouseButtonUp(self, button, x, y):
         self.dragOrigin = None
         self.releaseMouse()
         
     def onMouseMove(self, x, y):
+            
         if self.dragOrigin != None:
-            self.bar.x = self.originalBarX + x - self.dragOrigin
+            self.bar.y = self.originalBarY + y - self.dragOrigin
             self.enforceConstrains()
 
     def enforceConstrains(self):
+            
         b = self.bar
-        minx, maxx = self.minmax
-        if b.x < minx: b.x = minx
-        if b.x > maxx: b.x = maxx
-        value = float(b.x - minx) / (maxx - minx)
+        miny, maxy = self.minmax
+        if b.y < miny: b.y = miny
+        if b.y > maxy: b.y = maxy
+        value = 1.0 - (float(b.y - miny) / (maxy - miny))
         if value != self.value:
             if self.action != None:
                 self.action(value)
-            self.value = value 
+            self.value = value  
+            
             
     def setValue(self, v):
-        minx, maxx = self.minmax
-        self.bar.x = int(minx + (maxx - minx) * v)
+        miny, maxy = self.minmax
+        self.bar.y = int(miny + (maxy - miny) * v)
         self.enforceConstrains()
 
     def getValue(self):
@@ -330,13 +332,16 @@ class Slider(Scrollbar):
     def __init__(self, parent, name, x, y, w, h, action = None):
         Scrollbar.__init__(self, parent, name, x, y, w, h, action)        
         self.outline = Box(self, "outline", w, h, s = EngraveSettingsOuter)
-        t = self.track = Box(self, "track", w*3/4, 8, s = EngraveSettingsInner)
-        t.x = w / 8
-        t.y = h /2 - 4
+        
+        t = self.track = Box(self, "track", 8, h*3/4, s = EngraveSettingsInner)
+        t.y = h / 8
+        t.x = w /2 - 4
+        
         k = self.bar = Box(self, "knob", 33, 33, s=KnobSettings)
-        k.x = t.x - 15
-        k.y = t.y - 12
-        self.minmax = (self.track.x - 15, self.track.x + self.track.w - self.bar.w + 2 + 15 )
+        k.x = t.x - 12
+        k.y = t.y - 15
+        
+        self.minmax = (self.track.y - 15, self.track.y + self.track.h - self.bar.h + 2 + 15)
 
 
 class Videoplayer(Widget):
