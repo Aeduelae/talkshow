@@ -144,25 +144,69 @@ class Grid(Widget):
 class Talkshow(Widget):
     def __init__(self, screen):
         Widget.__init__(self, screen, "Talkshow", w=screen.w, h=screen.h)
-         
-        #self.bg = Rect(self, "bg",  w = self.w , h=self.h-100, x=0, y=40, color="#202020")
-       
-        #self.gridContainer  = Widget(self, "gridContainer", w = self.w - 20, h=self.h-20-100, x=10, y=50)
+                
+        Titleheight        = self.h/50
         
-        #b = self.backButton = Button(self, "backbutton", 20                , self.h - 100 + 50, 100, 50, handler = self.back, text='<<')        
-        #self.homeButton     = Button(self, "homebutton", self.w/2 - 100    , self.h - 100 + 50, 200, 50, handler = self.home, text="Start")
-        #self.volumeSlider   = Slider(self, "volume"    , self.w - 200 - 20 , self.h - 100 + 50, 200, 50, action = self.setVolume)
-        #self.volumeSlider.knobPosition = 1.0 
+        screenmarginvert   = self.h/100 #10
+        screenmarginhoriz  = screenmarginvert
         
-        self.bg = Rect(self, "bg",  w = self.w , h=self.h-20-200, x=0, y=80, color="#202020")
-        self.gridContainer  = Widget(self, "gridContainer", w = self.w - 20, h=self.h-40-200, x=10, y=80+10)
+        bgmarginvert       = self.h/100 #10
+        bgmarginhoriz      = bgmarginvert
+        
+        Headwidth          = 0
+        Footwidth          = 0
+        Rightwidth         = self.w/10
+        Leftwidth          = Rightwidth
+        
+        BackGroundWidth    = self.w - 2 * screenmarginhoriz - Rightwidth - Leftwidth
+        BackGroundHeigth   = self.h - 2 * screenmarginvert  - Headwidth  - Footwidth
+        BackGroundPosX     = screenmarginhoriz + Leftwidth
+        BackGroundPosY     = screenmarginvert  + Headwidth
+        
+        GridContainerWidth  = BackGroundWidth  - 2 * bgmarginhoriz
+        GridContainerHeigth = BackGroundHeigth - 2 * bgmarginvert
+        GridContainerPosX   = BackGroundPosX + bgmarginhoriz
+        GridContainerPosY   = BackGroundPosY + bgmarginvert
+        
+        quitButtonWidth    = Rightwidth
+        quitButtonHeight   = Rightwidth
+        quitButtonPosX     = self.w - screenmarginhoriz - quitButtonWidth
+        quitButtonPosY     = screenmarginvert
+        
+        AttButtonWidth     = Leftwidth
+        AttButtonHeight    = Leftwidth
+        AttButtonPosX      = screenmarginhoriz
+        AttButtonPosY      = screenmarginvert + Headwidth 
+        
+        homeButtonWidth    = Leftwidth
+        homeButtonHeight   = Leftwidth
+        homeButtonPosX     = screenmarginhoriz 
+        homeButtonPosY     = self.h - screenmarginvert - Footwidth - homeButtonHeight
+        
+        backButtonWidth    = Leftwidth
+        backButtonHeight   = Leftwidth
+        backButtonPosX     = screenmarginhoriz
+        backButtonPosY     = homeButtonPosY - backButtonHeight
+        
+        VolumeSliderWidth  = Rightwidth
+        VolumeSliderHeight = 2 * Rightwidth
+        VolumeSliderPosX   = self.w - screenmarginhoriz - VolumeSliderWidth
+        VolumeSliderPosY   = self.h - screenmarginvert - Footwidth - VolumeSliderHeight
+        
+        self.bg = Rect(self, "bg",  w = BackGroundWidth , h=BackGroundHeigth, x=BackGroundPosX, y=BackGroundPosY, color="#202020")
+        
+        self.gridContainer       = Widget(self, "gridContainer",  w = GridContainerWidth, h = GridContainerHeigth, x = GridContainerPosX, y = GridContainerPosY)
+        
+        b = self.quitButton      = Button(self, "quitbutton"   ,  w = quitButtonWidth   , h = quitButtonHeight,    x = quitButtonPosX,    y = quitButtonPosY,   handler = self.quit, text='X')        
 
-        b = self.quitButton = Button(self, "quitbutton", self.w - 80, 0, 80, 80, handler = self.quit, text='X')        
-
-        b = self.backButton = Button(self, "backbutton", 20                , self.h - 200 + 80, 100, 100, handler = self.back, text='<<')        
-        self.homeButton     = Button(self, "homebutton", self.w/2 - 100    , self.h - 200 + 80, 200, 100, handler = self.home, text="Start")
-        self.volumeSlider   = Slider(self, "volume"    , self.w - 200 - 20 , self.h - 200 + 80, 200, 100, action = self.setVolume)
-        self.volumeSlider.knobPosition = 1.0
+        b = self.AttentionButton = Button(self, "attentionbutton",w = AttButtonWidth    , h = AttButtonHeight,     x = AttButtonPosX,     y = AttButtonPosY,    handler = self.DrawAttention, text='!')
+        
+        b = self.backButton      = Button(self, "backbutton",     w = backButtonWidth   , h = backButtonHeight,    x = backButtonPosX,    y = backButtonPosY,   handler = self.back, text='<')
+                         
+        self.homeButton          = Button(self, "homebutton",     w = homeButtonWidth   , h = homeButtonHeight,    x = homeButtonPosX,    y = homeButtonPosY,   handler = self.home, text="<<")
+        
+        self.volumeSlider         = Slider(self, "volume"    ,    w = VolumeSliderWidth , h = VolumeSliderHeight,  x = VolumeSliderPosX,  y = VolumeSliderPosY, action = self.setVolume)
+        self.volumeSlider.knobPosition = 0.0
         
         self.count = 9        
         
@@ -173,7 +217,7 @@ class Talkshow(Widget):
         self.gridFromPath()
         #self.newGrid()
         
-        l = self.label = Label(self, "title", x=20, y=10, size=20, text = "KommHelp Talkshow", color = "#0030ff")        
+        l = self.label = Label(self, "title", x=GridContainerPosX + 10, y=GridContainerPosY, size=Titleheight, text = "KommHelp Talkshow", color = "#0030ff")        
         #l.animate("progress", 0, 1, 0, 3000)
         
     def quit(self):
@@ -310,6 +354,9 @@ class Talkshow(Widget):
         if k=="-":
             self.count -= 1
             self.newGrid()
+            
+    def DrawAttention(self):
+        self.playPath(self.pathPrefix)
 
 
 #environment.set("character_spacing", -2)                    
