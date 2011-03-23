@@ -356,7 +356,7 @@ class Talkshow(Widget):
             self.newGrid()
             
     def DrawAttention(self):
-        self.playPath(self.pathPrefix)
+        self.playPath(self.pathPrefix + '/Alarm')
 
 
 #environment.set("character_spacing", -2)                    
