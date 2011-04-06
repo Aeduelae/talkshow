@@ -134,7 +134,7 @@ class Rect(ColoredVisible):
 class Screen(ColoredVisible):    
     def __init__(self, name, device = "", w = 640, h = 480, color="#00007f"):
         
-        self.window = pyglet.window.Window(caption=name, fullscreen=1)
+        self.window = pyglet.window.Window(caption=name, fullscreen=1, resizable=True)
                 
         ColoredVisible.__init__(self, None, name, 0, 0, self.w, self.h, color, opacity=1.0)
         self.__children__ = []
@@ -378,6 +378,7 @@ class Group(ClippingContainer):
     def __init__(self, p, name, x=0, y=0, w=10, h=10, ox=0, oy=0, clipChildren=True):
         self._W, self._H = w, h
         ClippingContainer.__init__(self, p, name, x, y, w, h*2 if hasattr(self,'fg') else h, ox, oy, clipChildren)     
+        
         self.__children__ = []
 
     def __addChild__(self, c):
