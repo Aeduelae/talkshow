@@ -3,17 +3,25 @@ import math
 from wrappers import *
 from widget import *
 import glob
-
+import subprocess
 import pyglet
 from delayed_call import *
 import animated_property
 import time
+from win32process import TerminateProcess
+from datetime import datetime, timedelta
+import _winreg
 
 def normalizePath(path):
     path = path.replace("\\", "/")
     while "//" in path:
         path = path.replace("//", "/")
     return path
+
+def WindowsPath(path):
+    path = path.replace("/", "\\")
+    # return absolute path
+    return os.getcwd() + path[1:]
 
 def clamp(v, low=0.0, high=1.0):
     if v>high: v = high
@@ -248,6 +256,7 @@ class Talkshow(Widget):
                   self.grid.enterFIeld(f)
                   self.dc = DelayedCall(self.gridFromPath, 500, (f.color, self.pathForField(f.index)))
               self.playPath(self.pathPrefix + self.pathForField(f.index))
+              #self.playPath_AudioRecorder(self.pathPrefix + self.pathForField(f.index))
     
     def iconForPath(self, path):
         #print path
@@ -266,30 +275,62 @@ class Talkshow(Widget):
             self.videoplayer = None
     
     def playPath(self, path):
-        videos = glob.glob(path+"/*.mpg")
-        if videos:
-            path = normalizePath(videos[0])
-            self.cancelVideo()
-            self.videoplayer =  Videoplayer(self.gridContainer, "videoplayer", path, 0, 0, w=self.gridContainer.w, h=self.gridContainer.h)
-            return
         
-        sounds = glob.glob(path+"/*.wav")
-        print "sounds", sounds
-        if sounds:
-            path = normalizePath(sounds[0])
-            #print path
-            #r = Resource(path)
-            #print r._obj.details
-
-            #r = r.find("sound0")
-            #print r._obj.details
-            #if r != None:
-            s = self.sound  = Sound(0, path)
+        WaveSounds = glob.glob(path+"/*.wav")
+        #print "sounds", sounds
+        if WaveSounds:
+            wave = normalizePath(WaveSounds[0])
+            print 'playing: ', wave
+            s = self.sound  = Sound(0, wave)
             s.speed=1
-            #else:
-            #    print "Unable to decode wav"
-            
+        else:
+            Media = glob.glob(path+"/*.avi") + glob.glob(path+"/*.wmv") + glob.glob(path+"/*.mpg") + glob.glob(path+"/*.mp3") + glob.glob(path+"/*.wma") + glob.glob(path+"/*.asf") + glob.glob(path+"/*.midi") + glob.glob(path+"/*.aiff") + glob.glob(path+"/*.au")
         
+            if Media:
+           
+                if sys.platform == 'win32':
+                    try:
+                        RegKey         = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,'Software\\Microsoft\\MediaPlayer\\Setup\\CreatedLinks')
+                    except:
+                        print 'Sorry. Media Player not found.'
+                        return
+                        
+                    self.MediaPlayerExe = _winreg.QueryValueEx(RegKey,'AppName')[0] + ' '
+                    print self.MediaPlayerExe
+                    MediaString = ''
+                    for filename in Media:
+                        WinName = WindowsPath(filename)
+                        MediaString = MediaString + '"' + WinName + '"'
+                    
+                    self.play_MediaPlayer(MediaString)
+                    return
+                else:
+                    print 'Sorry. Currently, media other than *.wav files can only be played back on Windows 32 systems.'
+
+            
+    #def play_AudioRecorder(self, mp3):
+    #    AudioRecorderExe = 'c:\WINDOWS\system32\sndrec32.exe '
+    #    #Arguments        = '/embedding /play /close '
+    #    Arguments        = '/play /close '
+    #    os.system(AudioRecorderExe + Arguments + '"' + mp3 + '"')
+            
+    def play_MediaPlayer(self, media):
+        #MediaPlayerExe = os.getcwd() + '\\content\\Verknüpfung mit wmplayer.exe.lnk '
+        #MediaPlayerExe = 'C:\\Programme\\Windows Media Player\\wmplayer.exe '
+        
+        Arguments      = ' '
+        
+        print 'PLAYING:', self.MediaPlayerExe + media
+        screen.window.set_fullscreen(0)
+        
+        process = subprocess.Popen(self.MediaPlayerExe + media + Arguments)
+        
+        process.wait()
+        screen.window.set_fullscreen(1)
+    
+    def Terminate_Process(self, process):
+        TerminateProcess(process._handle, 1)
+                
     def setVolume(self, v):
         #print "Volume", v
         #tubifex.volume = v
@@ -372,6 +413,6 @@ def tick():
     animated_property.T = time.time()*1000
     animated_property.AnimatedProperty.tick()
     return True
-    
+
 pc = PeriodicCall(tick,0)
 pyglet.app.run()
