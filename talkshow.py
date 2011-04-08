@@ -315,8 +315,7 @@ class Talkshow(Widget):
     #    os.system(AudioRecorderExe + Arguments + '"' + mp3 + '"')
             
     def play_MediaPlayer(self, media):
-        #MediaPlayerExe = os.getcwd() + '\\content\\Verknüpfung mit wmplayer.exe.lnk '
-        #MediaPlayerExe = 'C:\\Programme\\Windows Media Player\\wmplayer.exe '
+        
         
         Arguments      = ' '
         
