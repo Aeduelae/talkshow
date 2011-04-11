@@ -8,8 +8,6 @@ import pyglet
 from delayed_call import *
 import animated_property
 import time
-from win32process import TerminateProcess
-from datetime import datetime, timedelta
 import _winreg
 
 def normalizePath(path):
