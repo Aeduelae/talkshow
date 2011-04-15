@@ -8,7 +8,8 @@ import pyglet
 from delayed_call import *
 import animated_property
 import time
-import _winreg
+if sys.platform == 'win32':
+    import _winreg
 
 def normalizePath(path):
     path = path.replace("\\", "/")
