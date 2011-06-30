@@ -22,6 +22,10 @@ def WindowsPath(path):
     # return absolute path
     return os.getcwd() + path[1:]
 
+def ExpandPath(path):
+    path = os.path.expandvars(path[:-4].replace('%','$')).replace('$','')
+    return path
+    
 def clamp(v, low=0.0, high=1.0):
     if v>high: v = high
     if v<low: v = low
@@ -152,68 +156,10 @@ class Talkshow(Widget):
     def __init__(self, screen):
         Widget.__init__(self, screen, "Talkshow", w=screen.w, h=screen.h)
                 
-        Titleheight        = self.h/50
+        self.screen = screen
+        self.SetLayout('Vertical')
         
-        screenmarginvert   = self.h/100 #10
-        screenmarginhoriz  = screenmarginvert
-        
-        bgmarginvert       = self.h/100 #10
-        bgmarginhoriz      = bgmarginvert
-        
-        Headwidth          = 0
-        Footwidth          = 0
-        Rightwidth         = self.w/10
-        Leftwidth          = Rightwidth
-        
-        BackGroundWidth    = self.w - 2 * screenmarginhoriz - Rightwidth - Leftwidth
-        BackGroundHeigth   = self.h - 2 * screenmarginvert  - Headwidth  - Footwidth
-        BackGroundPosX     = screenmarginhoriz + Leftwidth
-        BackGroundPosY     = screenmarginvert  + Headwidth
-        
-        GridContainerWidth  = BackGroundWidth  - 2 * bgmarginhoriz
-        GridContainerHeigth = BackGroundHeigth - 2 * bgmarginvert
-        GridContainerPosX   = BackGroundPosX + bgmarginhoriz
-        GridContainerPosY   = BackGroundPosY + bgmarginvert
-        
-        quitButtonWidth    = Rightwidth
-        quitButtonHeight   = Rightwidth
-        quitButtonPosX     = self.w - screenmarginhoriz - quitButtonWidth
-        quitButtonPosY     = screenmarginvert
-        
-        AttButtonWidth     = Leftwidth
-        AttButtonHeight    = Leftwidth
-        AttButtonPosX      = screenmarginhoriz
-        AttButtonPosY      = screenmarginvert + Headwidth 
-        
-        homeButtonWidth    = Leftwidth
-        homeButtonHeight   = Leftwidth
-        homeButtonPosX     = screenmarginhoriz 
-        homeButtonPosY     = self.h - screenmarginvert - Footwidth - homeButtonHeight
-        
-        backButtonWidth    = Leftwidth
-        backButtonHeight   = Leftwidth
-        backButtonPosX     = screenmarginhoriz
-        backButtonPosY     = homeButtonPosY - backButtonHeight
-        
-        VolumeSliderWidth  = Rightwidth
-        VolumeSliderHeight = 2 * Rightwidth
-        VolumeSliderPosX   = self.w - screenmarginhoriz - VolumeSliderWidth
-        VolumeSliderPosY   = self.h - screenmarginvert - Footwidth - VolumeSliderHeight
-        
-        self.bg = Rect(self, "bg",  w = BackGroundWidth , h=BackGroundHeigth, x=BackGroundPosX, y=BackGroundPosY, color="#202020")
-        
-        self.gridContainer       = Widget(self, "gridContainer",  w = GridContainerWidth, h = GridContainerHeigth, x = GridContainerPosX, y = GridContainerPosY)
-        
-        b = self.quitButton      = Button(self, "quitbutton"   ,  w = quitButtonWidth   , h = quitButtonHeight,    x = quitButtonPosX,    y = quitButtonPosY,   handler = self.quit, text='X')        
-
-        b = self.AttentionButton = Button(self, "attentionbutton",w = AttButtonWidth    , h = AttButtonHeight,     x = AttButtonPosX,     y = AttButtonPosY,    handler = self.DrawAttention, text='!')
-        
-        b = self.backButton      = Button(self, "backbutton",     w = backButtonWidth   , h = backButtonHeight,    x = backButtonPosX,    y = backButtonPosY,   handler = self.back, text='<')
-                         
-        self.homeButton          = Button(self, "homebutton",     w = homeButtonWidth   , h = homeButtonHeight,    x = homeButtonPosX,    y = homeButtonPosY,   handler = self.home, text="<<")
-        
-        self.volumeSlider         = Slider(self, "volume"    ,    w = VolumeSliderWidth , h = VolumeSliderHeight,  x = VolumeSliderPosX,  y = VolumeSliderPosY, action = self.setVolume)
-        self.volumeSlider.knobPosition = 0.0
+        #self.DoLayout()
         
         self.count = 9        
         
@@ -221,17 +167,174 @@ class Talkshow(Widget):
         self.path= ""
         self.grid = None
         self.videoplayer = None
+        self.MenuFlag = 0
         self.gridFromPath()
+        self.SetPlayer('VLC')
+        
         #self.newGrid()
         
-        l = self.label = Label(self, "title", x=GridContainerPosX + 10, y=GridContainerPosY, size=Titleheight, text = "KommHelp Talkshow", color = "#0030ff")        
+        
         #l.animate("progress", 0, 1, 0, 3000)
         
+    def GetWidgetSize(self,name,Alignment):
+        if Alignment == 'Vertical':            
+            self.Headwidth          = 0
+            self.Footwidth          = 0
+            self.Rightwidth         = self.w/10
+            self.Leftwidth          = self.Rightwidth
+            
+        else: 
+            self.Headwidth          = self.h/10
+            self.Footwidth          = self.Headwidth
+            self.Rightwidth         = 0
+            self.Leftwidth          = 0
+        
+        self.screenmarginvert   = self.h/100 #10
+        self.screenmarginhoriz  = self.screenmarginvert
+        
+        self.bgmarginvert       = self.h/100 #10
+        self.bgmarginhoriz      = self.bgmarginvert  
+            
+        
+        if name == 'bg':
+            w = self.BackGroundWidth    = self.w - 2 * self.screenmarginhoriz - self.Rightwidth - self.Leftwidth 
+            h = self.BackGroundHeigth   = self.h - 2 * self.screenmarginvert  - self.Headwidth  - self.Footwidth
+            x = self.BackGroundPosX     = self.screenmarginhoriz + self.Leftwidth
+            y = self.BackGroundPosY     = self.screenmarginvert  + self.Headwidth
+            handler = None
+            text = ''
+            isbutton = 0
+
+        elif name == 'gridContainer':
+            w = self.GridContainerWidth  = self.BackGroundWidth  - 2 * self.bgmarginhoriz
+            h = self.GridContainerHeigth = self.BackGroundHeigth - 2 * self.bgmarginvert
+            x = self.GridContainerPosX   = self.BackGroundPosX + self.bgmarginhoriz
+            y = self.GridContainerPosY   = self.BackGroundPosY + self.bgmarginvert
+            handler = None
+            text = ''
+            isbutton = 0
+         
+        elif name == 'quitbutton': 
+            w = self.quitButtonWidth    = self.Rightwidth  + self.Headwidth
+            h = self.quitButtonHeight   = self.Rightwidth  + self.Headwidth
+            x = self.quitButtonPosX     = self.w - self.screenmarginhoriz - self.quitButtonWidth
+            y = self.quitButtonPosY     = self.screenmarginvert
+            handler = self.quit
+            text = 'X'
+            isbutton = 1
+            
+        elif name == 'menubutton':
+            w = self.menuButtonWidth    = self.Rightwidth  + self.Headwidth
+            h = self.menuButtonHeight   = self.Rightwidth  + self.Headwidth
+            x = self.menuButtonPosX     = self.w - self.screenmarginhoriz - self.Rightwidth - 2 * self.Headwidth
+            y = self.menuButtonPosY     = self.screenmarginvert + 2 * self.Rightwidth
+            handler = self.menu
+            text = 'M'
+            isbutton = 1
+        
+        elif name == 'attentionbutton':
+            w = self.AttButtonWidth     = self.Leftwidth + self.Footwidth
+            h = self.AttButtonHeight    = self.Leftwidth + self.Footwidth
+            x = self.AttButtonPosX      = self.screenmarginhoriz
+            y = self.AttButtonPosY      = self.screenmarginvert
+            handler = self.DrawAttention
+            text = '!'
+            isbutton = 1
+        
+        elif name == 'homebutton':
+            w = self.homeButtonWidth    = self.Leftwidth  + self.Footwidth
+            h = self.homeButtonHeight   = self.Leftwidth  + self.Footwidth
+            x = self.homeButtonPosX     = self.screenmarginhoriz 
+            y = self.homeButtonPosY     = self.h - self.screenmarginvert - self.homeButtonHeight
+            handler = self.home
+            text = '<<'
+            isbutton = 1
+        
+        elif name == 'backbutton':
+            w = self.backButtonWidth    = self.Leftwidth  + self.Footwidth
+            h = self.backButtonHeight   = self.Leftwidth  + self.Footwidth
+            x = self.backButtonPosX     = self.screenmarginhoriz + self.Footwidth
+            y = self.backButtonPosY     = self.homeButtonPosY    - self.Leftwidth
+            handler = self.back
+            text = '<'
+            isbutton = 1
+        
+        elif name == 'volume':
+            w = self.VolumeSliderWidth  = self.Rightwidth  + self.Headwidth
+            h = self.VolumeSliderHeight = 2 * self.Rightwidth
+            x = self.VolumeSliderPosX   = self.w - self.screenmarginhoriz - self.VolumeSliderWidth
+            y = self.VolumeSliderPosY   = self.h - self.screenmarginvert - self.Footwidth - self.VolumeSliderHeight
+            handler = self.setVolume
+            text = ''
+            isbutton = 0
+        else:
+            x = 0
+            y = 0
+            w = 0
+            h = 0
+            handler = None
+            text = ''
+            isbutton = 0
+            
+#        VolumeSliderWidth  = 2 * Footwidth
+#        VolumeSliderHeight = Footwidth
+#        VolumeSliderPosX   = self.w - screenmarginhoriz - VolumeSliderWidth
+#        VolumeSliderPosY   = self.h - screenmarginvert  - VolumeSliderHeight
+        
+        return [x, y, w, h, handler, text, isbutton]
+    
+    def SetLayout(self,Alignment):
+        
+        name = 'bg'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        self.bg              = Rect  (self, name,  w = self.BackGroundWidth , h=self.BackGroundHeigth, x=self.BackGroundPosX, y=self.BackGroundPosY, color="#202020")
+        
+        name = 'gridContainer'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        self.gridContainer   = Widget(self, name,  w = self.GridContainerWidth, h = self.GridContainerHeigth, x = self.GridContainerPosX, y = self.GridContainerPosY)
+        
+        name = 'quitbutton'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        self.quitButton      = Button(self, name   ,  w = self.quitButtonWidth   , h = self.quitButtonHeight,    x = self.quitButtonPosX,    y = self.quitButtonPosY,   handler = handler, text=text)        
+        
+        name = 'menubutton'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        self.menuButton      = Button(self, name   ,  w = self.menuButtonWidth   , h = self.menuButtonHeight,    x = self.menuButtonPosX,    y = self.menuButtonPosY,   handler = handler, text=text)
+        
+        name = 'attentionbutton'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        self.AttentionButton = Button(self, name,w = self.AttButtonWidth    , h = self.AttButtonHeight,     x = self.AttButtonPosX,     y = self.AttButtonPosY,    handler = handler, text=text)
+        
+        name = 'homebutton'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        self.homeButton      = Button(self, name,     w = self.homeButtonWidth   , h = self.homeButtonHeight,    x = self.homeButtonPosX,    y = self.homeButtonPosY,   handler = handler, text=text)
+        
+        name = 'backbutton'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        self.backButton      = Button(self, name,     w = self.backButtonWidth   , h = self.backButtonHeight,    x = self.backButtonPosX,    y = self.backButtonPosY,   handler = handler, text=text)
+        
+        name = 'volume'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        #self.volumeSlider   = Slider(self, "volume"    ,    w = self.VolumeSliderWidth , h = self.VolumeSliderHeight,  x = self.VolumeSliderPosX,  y = self.VolumeSliderPosY, action = self.setVolume)
+        #self.volumeSlider.knobPosition = 0.0
+        
+        
+        #x = self.GridContainerPosX + 10
+        #y = self.GridContainerPosY
+        
+        size = self.h/30
+        x    = self.w/2
+        y    = self.screenmarginvert + 5 
+        
+        self.label           = Label (self, 'title', x, y, size, text = "KommHelp Talkshow", color = "#0030ff")
+        
+        self.label.x = self.w/2 - self.label.w/2
+          
     def quit(self):
         sys.exit(0)
     
     def getFieldText(self, i):
-         return self.items[i]
+        return self.items[i]
         
     def pathForField(self, i):
         path = self.path + "/" + self.items[i]
@@ -286,26 +389,14 @@ class Talkshow(Widget):
             Media = glob.glob(path+"/*.avi") + glob.glob(path+"/*.wmv") + glob.glob(path+"/*.mpg") + glob.glob(path+"/*.mp3") + glob.glob(path+"/*.wma") + glob.glob(path+"/*.asf") + glob.glob(path+"/*.midi") + glob.glob(path+"/*.aiff") + glob.glob(path+"/*.au")
         
             if Media:
-           
-                if sys.platform == 'win32':
-                    try:
-                        RegKey         = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,'Software\\Microsoft\\MediaPlayer\\Setup\\CreatedLinks')
-                    except:
-                        print 'Sorry. Media Player not found.'
-                        return
-                        
-                    self.MediaPlayerExe = _winreg.QueryValueEx(RegKey,'AppName')[0] + ' '
-                    print self.MediaPlayerExe
-                    MediaString = ''
-                    for filename in Media:
-                        WinName = WindowsPath(filename)
-                        MediaString = MediaString + '"' + WinName + '"'
-                    
-                    self.play_MediaPlayer(MediaString)
-                    return
-                else:
-                    print 'Sorry. Currently, media other than *.wav files can only be played back on Windows 32 systems.'
-
+                MediaString = ''
+                for filename in Media:
+                    WinName = WindowsPath(filename)
+                    MediaString = MediaString + ' "' + WinName + '"'
+                #print MediaString
+                self.play_MediaPlayer(MediaString)
+                return
+            
             
     #def play_AudioRecorder(self, mp3):
     #    AudioRecorderExe = 'c:\WINDOWS\system32\sndrec32.exe '
@@ -315,17 +406,42 @@ class Talkshow(Widget):
             
     def play_MediaPlayer(self, media):
         
-        
-        Arguments      = ' '
-        
-        print 'PLAYING:', self.MediaPlayerExe + media
+        Arguments      = '--volume=1 '
+
         screen.window.set_fullscreen(0)
-        
-        process = subprocess.Popen(self.MediaPlayerExe + media + Arguments)
+        print 'Play command: ', self.MediaPlayerExe + Arguments + media
+        process = subprocess.Popen(self.MediaPlayerExe + Arguments + media)
         
         process.wait()
         screen.window.set_fullscreen(1)
     
+    def SetPlayer(self,Player):
+        if sys.platform == 'win32':
+            if Player == 'VLC':
+                KeyName = 'SOFTWARE\\VideoLAN\\VLC'
+                AppName = ''
+                
+            elif Player == 'WMP':
+                KeyName = 'Software\\Microsoft\\MediaPlayer\\Setup\\CreatedLinks'
+                AppName = 'AppName'
+                
+            else: 
+                print 'Media player not defined.'
+            try:
+                
+                RegKey     = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,KeyName)
+                Executable = ExpandPath(_winreg.QueryValueEx(RegKey,AppName)[0])
+            except:
+                print 'Sorry. VLC not found.'
+                return
+                
+            
+            self.MediaPlayerExe = Executable + ' '            
+            print self.MediaPlayerExe
+            
+        else:
+            print 'Sorry. Currently, media other than *.wav files can only be played back on Windows 32 systems.'
+
     def Terminate_Process(self, process):
         TerminateProcess(process._handle, 1)
                 
@@ -336,13 +452,18 @@ class Talkshow(Widget):
         
     def back(self):
         l = self.path.split("/")
-
+        
         if l:
             self.path= "/".join(l[:-1])
+            #print 'ZURÜCK: ',self.path
             self.gridFromPath(("#000000",self.path))
             self.cleanUp()
   
     def home(self):
+        if self.MenuFlag:
+            self.MenuFlag = 0
+            self.menuButton.h = self.menuButtonWidth
+            self.backButton.h = self.backButtonWidth
         l = self.path = ""
         self.gridFromPath()
         self.cleanUp()
@@ -360,6 +481,14 @@ class Talkshow(Widget):
             color, path = color_and_path
         
         print self.pathPrefix+ path
+        if self.MenuFlag:
+            ok = self.MenuCommand(path[path.rfind('/')+1:])
+            if ok:
+                self.gridFromPath()
+                self.home()
+                return
+                #pass
+            
         self.path = path
         #print items
         self.items =  self.subdirs(self.pathPrefix, self.path)
@@ -396,7 +525,50 @@ class Talkshow(Widget):
             
     def DrawAttention(self):
         self.playPath(self.pathPrefix + '/Alarm')
+        
+    def menu(self):
 
+        self.menuButton.h = 0
+        self.backButton.h = 0
+        self.MenuFlag = 1
+        self.gridFromPath(("#000000",'../Menu'))
+        self.cleanUp()
+    
+    def MenuCommand(self,Command):
+        print 'Menu Befehl: ',Command
+        if Command == 'Horizontal' or Command == 'Vertical':
+            
+            for c in self.screen.__children__[0]:
+                
+                [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(c.name,Command)
+                if not(x==0 and y==0 and w==0 and h==0):
+                    if isbutton:
+                        c.__init__(self, c.name, x=x, y=y, w=w, h=h, handler = handler,text=text)
+                    else:
+                        c.__init__(self, c.name, x=x, y=y, w=w, h=h)
+            print 'ok'
+            return 1
+
+            
+        elif Command == 'on':
+            print 'Scan einschalten'
+        elif Command == 'off':
+            print 'Scan ausschalten'
+        elif Command == 'Record sound':
+            print 'Aufnahme'
+        elif Command == 'Set volume':
+            print 'Lautstärke'
+        elif Command == 'VLC':
+            print 'VLC spielt'
+            self.SetPlayer('VLC')
+            return 1
+        elif Command == 'Media Player':
+            print 'Media'
+            self.SetPlayer('WMP')
+            return 1
+            
+        return 0
+        
 
 #environment.set("character_spacing", -2)                    
 
