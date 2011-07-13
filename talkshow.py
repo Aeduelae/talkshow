@@ -455,7 +455,6 @@ class Talkshow(Widget):
         
         if l:
             self.path= "/".join(l[:-1])
-            #print 'ZURÜCK: ',self.path
             self.gridFromPath(("#000000",self.path))
             self.cleanUp()
   
@@ -557,7 +556,7 @@ class Talkshow(Widget):
         elif Command == 'Record sound':
             print 'Aufnahme'
         elif Command == 'Set volume':
-            print 'Lautstärke'
+            print 'Lautstaerke'
         elif Command == 'VLC':
             print 'VLC spielt'
             self.SetPlayer('VLC')
