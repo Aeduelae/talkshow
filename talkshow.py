@@ -126,10 +126,19 @@ class Grid(Widget):
                     
     def onMouseButtonDown(self, button, x, y):
         field = None
-        for f in self:
-            if f.contains(x,y):
-                field = f
-        
+        if talkshow.ScanOn:
+            
+            if talkshow.CurrentField < len(talkshow.grid.fields):
+                field = self.fields[talkshow.CurrentField]
+            else:
+                print 'Den Knopf ', talkshow.CurrentButton+1,' ausführen...'
+                talkshow.HandlerList[talkshow.CurrentButton]()
+                
+        else:
+            for f in self:
+                if f.contains(x,y):
+                    field = f
+            
         if field != None:
             self.delegate.onFieldClicked(field)
 
@@ -161,18 +170,23 @@ class Talkshow(Widget):
         
         #self.DoLayout()
         
-        self.count = 9        
+        self.count = 9    
         
-        self.pathPrefix = "./Content/"
-        self.path= ""
-        self.grid = None
-        self.videoplayer = None
-        self.MenuFlag = 0
-        self.gridFromPath()
-        self.SetPlayer('VLC')
+        self.pathPrefix   = "./Content/"
+        self.path         = ""
+        self.grid         = None
+        self.videoplayer  = None
+        self.MenuFlag     = 0
+        self.PlaybackFlag = 0
+        self.gridFromPath ()
+        self.SetPlayer    ('WMP')
         
+        self.TimeOld = 0.
         #self.newGrid()
         
+        self.ColorOld     = '#FFF000'
+        self.ScanOn       = 1
+        self.TimeStep = 2000
         
         #l.animate("progress", 0, 1, 0, 3000)
         
@@ -195,7 +209,7 @@ class Talkshow(Widget):
         self.bgmarginvert       = self.h/100 #10
         self.bgmarginhoriz      = self.bgmarginvert  
             
-        
+        ButtonSize              = self.Rightwidth  + self.Headwidth
         if name == 'bg':
             w = self.BackGroundWidth    = self.w - 2 * self.screenmarginhoriz - self.Rightwidth - self.Leftwidth 
             h = self.BackGroundHeigth   = self.h - 2 * self.screenmarginvert  - self.Headwidth  - self.Footwidth
@@ -215,8 +229,8 @@ class Talkshow(Widget):
             isbutton = 0
          
         elif name == 'quitbutton': 
-            w = self.quitButtonWidth    = self.Rightwidth  + self.Headwidth
-            h = self.quitButtonHeight   = self.Rightwidth  + self.Headwidth
+            w = self.quitButtonWidth    = ButtonSize
+            h = self.quitButtonHeight   = ButtonSize
             x = self.quitButtonPosX     = self.w - self.screenmarginhoriz - self.quitButtonWidth
             y = self.quitButtonPosY     = self.screenmarginvert
             handler = self.quit
@@ -224,8 +238,8 @@ class Talkshow(Widget):
             isbutton = 1
             
         elif name == 'menubutton':
-            w = self.menuButtonWidth    = self.Rightwidth  + self.Headwidth
-            h = self.menuButtonHeight   = self.Rightwidth  + self.Headwidth
+            w = self.menuButtonWidth    = ButtonSize
+            h = self.menuButtonHeight   = ButtonSize
             x = self.menuButtonPosX     = self.w - self.screenmarginhoriz - self.Rightwidth - 2 * self.Headwidth
             y = self.menuButtonPosY     = self.screenmarginvert + 2 * self.Rightwidth
             handler = self.menu
@@ -233,8 +247,8 @@ class Talkshow(Widget):
             isbutton = 1
         
         elif name == 'attentionbutton':
-            w = self.AttButtonWidth     = self.Leftwidth + self.Footwidth
-            h = self.AttButtonHeight    = self.Leftwidth + self.Footwidth
+            w = self.AttButtonWidth     = ButtonSize
+            h = self.AttButtonHeight    = ButtonSize
             x = self.AttButtonPosX      = self.screenmarginhoriz
             y = self.AttButtonPosY      = self.screenmarginvert
             handler = self.DrawAttention
@@ -242,19 +256,19 @@ class Talkshow(Widget):
             isbutton = 1
         
         elif name == 'homebutton':
-            w = self.homeButtonWidth    = self.Leftwidth  + self.Footwidth
-            h = self.homeButtonHeight   = self.Leftwidth  + self.Footwidth
+            w = self.homeButtonWidth    = ButtonSize
+            h = self.homeButtonHeight   = ButtonSize
             x = self.homeButtonPosX     = self.screenmarginhoriz 
-            y = self.homeButtonPosY     = self.h - self.screenmarginvert - self.homeButtonHeight
+            y = self.homeButtonPosY     = self.h - self.screenmarginvert - ButtonSize
             handler = self.home
             text = '<<'
             isbutton = 1
         
         elif name == 'backbutton':
-            w = self.backButtonWidth    = self.Leftwidth  + self.Footwidth
-            h = self.backButtonHeight   = self.Leftwidth  + self.Footwidth
+            w = self.backButtonWidth    = ButtonSize
+            h = self.backButtonHeight   = ButtonSize
             x = self.backButtonPosX     = self.screenmarginhoriz + self.Footwidth
-            y = self.backButtonPosY     = self.homeButtonPosY    - self.Leftwidth
+            y = self.backButtonPosY     = self.h - self.screenmarginvert - ButtonSize    - self.Leftwidth
             handler = self.back
             text = '<'
             isbutton = 1
@@ -284,6 +298,8 @@ class Talkshow(Widget):
         return [x, y, w, h, handler, text, isbutton]
     
     def SetLayout(self,Alignment):
+        self.ButtonList  = []
+        self.HandlerList = []
         
         name = 'bg'
         [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
@@ -293,25 +309,35 @@ class Talkshow(Widget):
         [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
         self.gridContainer   = Widget(self, name,  w = self.GridContainerWidth, h = self.GridContainerHeigth, x = self.GridContainerPosX, y = self.GridContainerPosY)
         
-        name = 'quitbutton'
-        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
-        self.quitButton      = Button(self, name   ,  w = self.quitButtonWidth   , h = self.quitButtonHeight,    x = self.quitButtonPosX,    y = self.quitButtonPosY,   handler = handler, text=text)        
-        
-        name = 'menubutton'
-        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
-        self.menuButton      = Button(self, name   ,  w = self.menuButtonWidth   , h = self.menuButtonHeight,    x = self.menuButtonPosX,    y = self.menuButtonPosY,   handler = handler, text=text)
-        
         name = 'attentionbutton'
         [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
-        self.AttentionButton = Button(self, name,w = self.AttButtonWidth    , h = self.AttButtonHeight,     x = self.AttButtonPosX,     y = self.AttButtonPosY,    handler = handler, text=text)
-        
-        name = 'homebutton'
-        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
-        self.homeButton      = Button(self, name,     w = self.homeButtonWidth   , h = self.homeButtonHeight,    x = self.homeButtonPosX,    y = self.homeButtonPosY,   handler = handler, text=text)
+        b = self.AttentionButton = Button(self, name,w = self.AttButtonWidth    , h = self.AttButtonHeight,     x = self.AttButtonPosX,     y = self.AttButtonPosY,    handler = handler, text=text)
+        self.ButtonList.append (b)
+        self.HandlerList.append(handler)        
         
         name = 'backbutton'
         [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
-        self.backButton      = Button(self, name,     w = self.backButtonWidth   , h = self.backButtonHeight,    x = self.backButtonPosX,    y = self.backButtonPosY,   handler = handler, text=text)
+        b = self.backButton      = Button(self, name,     w = self.backButtonWidth   , h = self.backButtonHeight,    x = self.backButtonPosX,    y = self.backButtonPosY,   handler = handler, text=text)
+        self.ButtonList.append (b)
+        self.HandlerList.append(handler)        
+        
+        name = 'homebutton'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        b = self.homeButton      = Button(self, name,     w = self.homeButtonWidth   , h = self.homeButtonHeight,    x = self.homeButtonPosX,    y = self.homeButtonPosY,   handler = handler, text=text)
+        self.ButtonList.append (b)
+        self.HandlerList.append(handler)        
+        
+        name = 'quitbutton'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        b = self.quitButton      = Button(self, name   ,  w = self.quitButtonWidth   , h = self.quitButtonHeight,    x = self.quitButtonPosX,    y = self.quitButtonPosY,   handler = handler, text=text)        
+        self.ButtonList.append (b)
+        self.HandlerList.append(handler)        
+        
+        name = 'menubutton'
+        [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
+        b = self.menuButton      = Button(self, name   ,  w = self.menuButtonWidth   , h = self.menuButtonHeight,    x = self.menuButtonPosX,    y = self.menuButtonPosY,   handler = handler, text=text)
+        self.ButtonList.append (b)
+        self.HandlerList.append(handler)        
         
         name = 'volume'
         [x, y, w, h, handler, text, isbutton] = self.GetWidgetSize(name,Alignment)
@@ -330,7 +356,10 @@ class Talkshow(Widget):
         
         self.label.x = self.w/2 - self.label.w/2
           
+        
     def quit(self):
+        if self.PlaybackFlag:
+            process.terminate()
         sys.exit(0)
     
     def getFieldText(self, i):
@@ -375,7 +404,16 @@ class Talkshow(Widget):
             self.videoplayer.unref()
             self.videoplayer.parent = None
             self.videoplayer = None
-    
+            
+    def playName(self, path):
+        
+        Name = glob.glob(path+"/*.nam")
+        #print "sounds", sounds
+        if Name:
+            wave = normalizePath(Name[0])
+            s = self.sound  = Sound(0, wave)
+            s.speed=1
+            
     def playPath(self, path):
         
         WaveSounds = glob.glob(path+"/*.wav")
@@ -403,17 +441,41 @@ class Talkshow(Widget):
     #    #Arguments        = '/embedding /play /close '
     #    Arguments        = '/play /close '
     #    os.system(AudioRecorderExe + Arguments + '"' + mp3 + '"')
+    
+    def Record_AudioRecorder(self, name):
+        AudioRecorderExe = 'c:\WINDOWS\system32\sndrec32.exe '
+        #Arguments        = '/embedding /play /close '
+        Arguments        = '/record /close '
+        os.system(AudioRecorderExe + Arguments + '"' + name + '"')
             
     def play_MediaPlayer(self, media):
         
         Arguments      = '--volume=1 '
 
-        screen.window.set_fullscreen(0)
+        #screen.window.set_fullscreen(0)
         print 'Play command: ', self.MediaPlayerExe + Arguments + media
-        process = subprocess.Popen(self.MediaPlayerExe + Arguments + media)
         
-        process.wait()
-        screen.window.set_fullscreen(1)
+        si = subprocess.STARTUPINFO()
+        si.dwFlags     = subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = subprocess.SW_HIDE
+        
+        self.PlaybakcProc = subprocess.Popen(self.MediaPlayerExe + Arguments + media,startupinfo = si)
+        self.PlaybackFlag = 1
+        self.home()
+        #screen = Screen('', "", 40, 80, "#00007f")#screen.on_resize(50,70)
+        #screen.w = 200
+        #screen.h = 200
+        
+        #screen.x = 100
+        #screen.y = 10
+        #screen.window.activate()
+        
+        #Running = 1
+        #while Running:
+        #    Running = self.process.poll()
+        
+        #self.process.wait()
+        #screen.window.set_fullscreen(1)
     
     def SetPlayer(self,Player):
         if sys.platform == 'win32':
@@ -432,18 +494,24 @@ class Talkshow(Widget):
                 RegKey     = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,KeyName)
                 Executable = ExpandPath(_winreg.QueryValueEx(RegKey,AppName)[0])
             except:
-                print 'Sorry. VLC not found.'
-                return
+                try:
+                    RegKey     = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,KeyName)
+                    Executable = ExpandPath(_winreg.QueryValueEx(RegKey,AppName)[0])
                 
+                except:
+                    print 'Sorry. Neither Windows Media Player nor VLC found in registry. Media playback disabelled.'
+                    return
+                
+#            if Player == 'VLC':
+#                Executable = Executable.replace('vlc','cvlc')
+#                
+            self.MediaPlayerExe = Executable + ' '
             
-            self.MediaPlayerExe = Executable + ' '            
+                
             print self.MediaPlayerExe
             
         else:
             print 'Sorry. Currently, media other than *.wav files can only be played back on Windows 32 systems.'
-
-    def Terminate_Process(self, process):
-        TerminateProcess(process._handle, 1)
                 
     def setVolume(self, v):
         #print "Volume", v
@@ -461,16 +529,20 @@ class Talkshow(Widget):
     def home(self):
         if self.MenuFlag:
             self.MenuFlag = 0
-            self.menuButton.h = self.menuButtonWidth
-            self.backButton.h = self.backButtonWidth
+            self.pathPrefix = './Content/'
+            
         l = self.path = ""
         self.gridFromPath()
         self.cleanUp()
               
     def subdirs(self, prefix, path):
-        items = os.listdir(unicode(prefix+path))        
-        items = filter(lambda x: os.path.isdir(prefix + path + "/" + x), items)            
-        #print items
+        if self.PlaybackFlag:
+            items = ['Quit']
+        else:
+            items = os.listdir(unicode(prefix+path))        
+            items = filter(lambda x: os.path.isdir(prefix + path + "/" + x), items)     
+               
+        print 'Items: ',items
         return items
                 
     def gridFromPath(self, color_and_path = None):
@@ -478,17 +550,26 @@ class Talkshow(Widget):
         color="#000000"
         if color_and_path:
             color, path = color_and_path
+        self.path = path
         
-        print self.pathPrefix+ path
+        
         if self.MenuFlag:
+            #self.pathPrefix = "./Menu"
             ok = self.MenuCommand(path[path.rfind('/')+1:])
-            if ok:
-                self.gridFromPath()
+            print 'OK: ',ok
+            if ok == 1:
+                #self.gridFromPath()
                 self.home()
                 return
-                #pass
+            elif ok == 2:
+                self.pathPrefix = './Menu/'
+                self.path = 'Scan/Change settings'
+        if self.PlaybackFlag:
+            self.PlaybackCommand(path[path.rfind('/')+1:],self.PlaybakcProc)
             
-        self.path = path
+            
+        print self.pathPrefix+ path
+        
         #print items
         self.items =  self.subdirs(self.pathPrefix, self.path)
         #print self.items
@@ -500,6 +581,8 @@ class Talkshow(Widget):
         self.bg.color=color
         self.grid = Grid(self.gridContainer, self.count, self)
         print "instanceCount", Grid.instanceCount
+        self.CurrentField  = -1#len(self.grid.fields)-1
+        self.CurrentButton = -1
         self.cleanupDC = DelayedCall(self.cleanUp, 375)
 
     def cleanUp(self):
@@ -527,14 +610,24 @@ class Talkshow(Widget):
         
     def menu(self):
 
-        self.menuButton.h = 0
-        self.backButton.h = 0
+        #self.menuButton.h = 0
+        #self.backButton.h = 0
         self.MenuFlag = 1
-        self.gridFromPath(("#000000",'../Menu'))
+        self.pathPrefix = './Menu/'
+        self.gridFromPath(("#000000",''))
         self.cleanUp()
-    
+    def PlaybackCommand(self, Command, process):
+        print 'Playbakc Befehl: ',Command
+        if Command == 'Quit':
+            process.terminate()
+            self.PlaybackFlag = 0
+            self.home()
+            
     def MenuCommand(self,Command):
         print 'Menu Befehl: ',Command
+        TimeStepIncrement = 200
+        TimeStepDefault   = 2000
+        
         if Command == 'Horizontal' or Command == 'Vertical':
             
             for c in self.screen.__children__[0]:
@@ -551,10 +644,44 @@ class Talkshow(Widget):
             
         elif Command == 'on':
             print 'Scan einschalten'
+            self.ScanOn = 1
+            print 'Scan is on.'
+            #self.home()
+            return 1
+        elif Command == 'Very fast':
+            talkshow.TimeStep = 500
+            return 2
+            
+        elif Command == 'Very slow':
+            talkshow.TimeStep = 5000
+            return 2
+            
+        elif Command == 'Faster':
+            talkshow.TimeStep = talkshow.TimeStep - TimeStepIncrement
+            return 2
+            
+        elif Command == 'Slower':
+            talkshow.TimeStep = talkshow.TimeStep + TimeStepIncrement
+            return 2
+            
+        elif Command == 'Default':
+            talkshow.TimeStep = TimeStepDefault
+            return 2
+        
+        elif Command == 'OK':
+            return 1
+        
         elif Command == 'off':
             print 'Scan ausschalten'
+            self.ScanOn = 0
+            #self.home()
+            return 1
+        
         elif Command == 'Record sound':
+            self.Record_AudioRecorder('')
             print 'Aufnahme'
+            #self.home()
+            return 1
         elif Command == 'Set volume':
             print 'Lautstaerke'
         elif Command == 'VLC':
@@ -565,10 +692,53 @@ class Talkshow(Widget):
             print 'Media'
             self.SetPlayer('WMP')
             return 1
-            
-        return 0
+        else:
+            return 0
         
-
+    def DoScan(self,TimeNow):
+        NumButtons    = len(self.ButtonList)
+        
+        if self.ScanOn:
+            
+            if (self.CurrentField >= len(self.grid.fields)-1 and self.CurrentButton < NumButtons-1):
+                LastField = self.grid.fields[-1]
+                LastField.color = self.ColorOld
+                self.CurrentField = len(self.grid.fields) + 1
+                self.CurrentButton = self.CurrentButton + 1
+                
+                print 'Button ', self.CurrentButton+1, 'von', len(self.ButtonList)
+                #self.homeButton.bar.parent = None
+                Button     = self.ButtonList[self.CurrentButton]
+                LastButton = self.ButtonList[self.CurrentButton-1]
+                Button.bar     = Box(Button.container    , "bar", self.homeButtonWidth, self.homeButtonHeight, s=HighlightBarSettings)
+                LastButton.bar = Box(LastButton.container, "bar", self.homeButtonWidth, self.homeButtonHeight, s=BarSettings)
+                #b.x, b.y = 3,3
+                
+                
+            else:
+                if self.CurrentButton >= NumButtons-1:
+                    self.ButtonList[self.CurrentButton].bar = Box(self.ButtonList[self.CurrentButton].container, "bar", self.homeButtonWidth, self.homeButtonHeight, s=BarSettings)
+                    self.CurrentField = -1
+                    self.CurrentButton = -1
+                    
+                self.CurrentField = self.CurrentField + 1
+                
+                Field     = self.grid.fields[self.CurrentField]
+                LastField = self.grid.fields[self.CurrentField-1]
+                a = self.grid
+                print self.CurrentField+1, Field.text
+                self.playName(unicode(self.pathPrefix + self.pathForField(Field.index)))
+            
+                #Field.startHighlight()
+                LastField.color = self.ColorOld
+                self.ColorOld = Field.color
+                Field.color = '#F00000'
+                
+                
+            
+                
+            self.TimeOld  = TimeNow
+        
 #environment.set("character_spacing", -2)                    
 
 screen = Screen("Talkshow", "", 1280, 768)
@@ -579,8 +749,22 @@ screen.event_handler = talkshow
 
 # boilerplate
 def tick():
-    animated_property.T = time.time()*1000
+    
+    TimeNow = time.time()*1000
+    
+    if animated_property.T == 0.0:
+        # initializing
+        TimeOld = TimeNow
+    else:
+        TimeOld = talkshow.TimeOld
+        
+    animated_property.T = TimeNow
     animated_property.AnimatedProperty.tick()
+    
+    if TimeNow - TimeOld > talkshow.TimeStep:
+        
+        talkshow.DoScan(TimeNow)
+        
     return True
 
 pc = PeriodicCall(tick,0)
