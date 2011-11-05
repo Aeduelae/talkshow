@@ -132,11 +132,11 @@ class Rect(ColoredVisible):
         )
 
 class Screen(ColoredVisible):    
-    def __init__(self, name, device = "", w = 1440, h = 900, color="#00007f"):
+    def __init__(self, name, device = "", w = 640, h = 480, color="#00007f"):
         
-        self.window = pyglet.window.Window(caption=name, fullscreen=0, resizable=True)
+        self.window = pyglet.window.Window(caption=name, fullscreen=1, resizable=True)
                 
-        ColoredVisible.__init__(self, None, name, 50, 50, w, h, color, opacity=1.0)
+        ColoredVisible.__init__(self, None, name, 0, 0, self.w, self.h, color, opacity=1.0)
         self.__children__ = []
         self.event_handler = None
         
