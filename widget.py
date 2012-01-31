@@ -1,12 +1,13 @@
 from round_rect import RoundRect
 from wrappers import *
 from delayed_call import *
+
    
 class Widget(Group):
     def __init__(self, p, name, x = 0, y = 0, w = 10, h = 10, ox = 0, oy = 0):
         Group.__init__(self, p, name, x, y, w, h, ox, oy)
         self.mouseOwner = None
-    
+        
     def reverseIterator(self):
         childrencopy = list(self.__children__)
         childrencopy.reverse()
@@ -30,11 +31,16 @@ class Widget(Group):
         if self.mouseOwner != None:
             self.mouseOwner.onMouseButtonDown(button, x, y)
         else:
+            if self.ScanOn:
+                print 'ZUP!'
+                self.ScanClick()
+                
             for child in self.reverseIterator():
                 if child.contains(x, y):
                     if hasattr(child, "onMouseButtonDown"):
                         child.onMouseButtonDown(button, x - child.x, y - child.y)
                         break
+            
                     
     def onMouseButtonUp(self, button, x, y):
         if self.mouseOwner != None:
@@ -269,7 +275,7 @@ class HighlightBarSettings(BarSettings):
     highlight_amount = 0.2
     lowlight_amount = 0.3
     
-    color="#c0c0f0"
+    color="#0000F0"
 
 class Scrollbar(Widget):
     def __init__(self, parent, name, x, y, w, h, action=None):
@@ -395,10 +401,13 @@ class Button(Widget):
         label.progress=1
        
     def onMouseButtonDown(self, button, x, y):
-        self.bar.parent = None
-        b = self.bar = Box(self.container, "bar", self.w-4, self.h-4, s=HighlightBarSettings)
-        b.x, b.y = 3,3
-        self.captureMouse()
+        print 'HA'
+        if not self.parent.ScanOn:
+            print 'HO'
+            self.bar.parent = None
+            b = self.bar = Box(self.container, "bar", self.w-4, self.h-4, s=HighlightBarSettings)
+            b.x, b.y = 3,3
+            self.captureMouse()
          
     def onMouseButtonUp(self, button, x, y):
         self.bar.parent = None
