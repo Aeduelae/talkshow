@@ -34,7 +34,7 @@ def clamp(v, low=0.0, high=1.0):
 class Field(Widget):    
     def __init__(self, parent, x, y, w, h, text):
         Widget.__init__(self, parent, "Field", w = w, h = h, x = x, y = y)
-        border = self.border = Rect(self, "border", 0, 0, w, h, color="#1f1f1f")        
+        border = self.border = Rect(self, "border", 10, 10, w, h, color="#1f1f1f")        
         border.opacity=0
         bg = self.bg = Rect(self, "bg", 2, 2, w-4, h-4)        
         bg.color = "#7f7f7f"
@@ -93,8 +93,12 @@ class Grid(Widget):
     
     def __init__(self, parent, fieldCount, delegate):
         Widget.__init__(self, parent, "Grid", w = parent.w, h = parent.h)
-        self.delegate = delegate
-        self.fields = []
+        
+        self.delegate    = delegate
+        self.fields      = []
+        self.FieldColors = []
+        self.FieldMatrix = []
+        
         cols = round(math.sqrt(fieldCount) * 1) #parent.w / parent.h)
         rows = fieldCount / cols
         if rows != int(rows):
@@ -109,6 +113,7 @@ class Grid(Widget):
 
         i = 0
         for r in range(rows):
+            self.FieldMatrix.append([])
             for c in range(cols):
                 if i < fieldCount:
                     field = Field(self, w=w-4, h=h-4, x=w*c, y=h*r, text=delegate.getFieldText(i))
@@ -119,26 +124,20 @@ class Grid(Widget):
                         field.doLayout(field.w, field.h)      
                     field.progress=0                
                     field.animate("progress", 0, 1, 0, 250)
-                    field.color = "#%2X%2X00" % (int(255 * (c+1)/cols), int(255 * (r+1)/rows))
+                    self.FieldColors.append("#%2X%2X00" % (int(255 * (c+1)/cols), int(255 * (r+1)/rows)))
+                    field.color = "#7f7f7f"
                     field.index = i
                     self.fields.append(field)
+                    self.FieldMatrix[-1].append(field)
                     i += 1
-                    
+    
     def onMouseButtonDown(self, button, x, y):
         field = None
-        if talkshow.ScanOn:
-            
-            if talkshow.CurrentField < len(talkshow.grid.fields):
-                field = self.fields[talkshow.CurrentField]
-            else:
-                print 'Den Knopf ', talkshow.CurrentButton+1,' ausführen...'
-                talkshow.HandlerList[talkshow.CurrentButton]()
-                
-        else:
-            for f in self:
-                if f.contains(x,y):
-                    field = f
-            
+        
+        for f in self:
+            if f.contains(x,y):
+                field = f
+        
         if field != None:
             self.delegate.onFieldClicked(field)
 
@@ -459,7 +458,7 @@ class Talkshow(Widget):
         si.dwFlags     = subprocess.STARTF_USESHOWWINDOW
         si.wShowWindow = subprocess.SW_HIDE
         
-        self.PlaybakcProc = subprocess.Popen(self.MediaPlayerExe + Arguments + media,startupinfo = si)
+        self.PlaybackProc = subprocess.Popen(self.MediaPlayerExe + Arguments + media,startupinfo = si)
         self.PlaybackFlag = 1
         self.home()
         #screen = Screen('', "", 40, 80, "#00007f")#screen.on_resize(50,70)
@@ -565,7 +564,7 @@ class Talkshow(Widget):
                 self.pathPrefix = './Menu/'
                 self.path = 'Scan/Change settings'
         if self.PlaybackFlag:
-            self.PlaybackCommand(path[path.rfind('/')+1:],self.PlaybakcProc)
+            self.PlaybackCommand(path[path.rfind('/')+1:],self.PlaybackProc)
             
             
         print self.pathPrefix+ path
@@ -581,8 +580,10 @@ class Talkshow(Widget):
         self.bg.color=color
         self.grid = Grid(self.gridContainer, self.count, self)
         print "instanceCount", Grid.instanceCount
-        self.CurrentField  = -1#len(self.grid.fields)-1
-        self.CurrentButton = -1
+        self.ActiveField  = -1#len(self.grid.fields)-1
+        self.ActiveRow    = -1
+        self.ActiveCol    = -1
+        self.ActiveButton = -1
         self.cleanupDC = DelayedCall(self.cleanUp, 375)
 
     def cleanUp(self):
@@ -596,7 +597,20 @@ class Talkshow(Widget):
                 x.parent = None
             i+=1
             
-
+    def ScanClick(self):
+        
+        if self.ActiveField < len(self.grid.fields):
+            field = self.grid.fields[self.ActiveField]
+        else:
+            print 'Den Knopf ', self.ActiveButton+1,' ausführen...'
+            Button = self.ButtonList[self.ActiveButton] 
+            Button.bar = Box(Button.container, "bar", self.homeButtonWidth, self.homeButtonHeight, s=BarSettings)
+            self.HandlerList[self.ActiveButton]()
+            field = None
+                
+        if field != None:
+            self.grid.delegate.onFieldClicked(field)
+            
     def key_sink(self, k):
         if k=="+":
             self.count += 1
@@ -699,43 +713,44 @@ class Talkshow(Widget):
         NumButtons    = len(self.ButtonList)
         
         if self.ScanOn:
-            
-            if (self.CurrentField >= len(self.grid.fields)-1 and self.CurrentButton < NumButtons-1):
+            """ highlight the active button: """
+            if (self.ActiveField >= len(self.grid.fields)-1 and self.ActiveButton < NumButtons-1):
                 LastField = self.grid.fields[-1]
-                LastField.color = self.ColorOld
-                self.CurrentField = len(self.grid.fields) + 1
-                self.CurrentButton = self.CurrentButton + 1
+                LastField.color = "#7f7f7f"
+                self.ActiveField = len(self.grid.fields) + 1
+                self.ActiveButton = self.ActiveButton + 1
                 
-                print 'Button ', self.CurrentButton+1, 'von', len(self.ButtonList)
+                print 'Button ', self.ActiveButton+1, 'von', len(self.ButtonList)
                 #self.homeButton.bar.parent = None
-                Button     = self.ButtonList[self.CurrentButton]
-                LastButton = self.ButtonList[self.CurrentButton-1]
+                Button     = self.ButtonList[self.ActiveButton]
+                LastButton = self.ButtonList[self.ActiveButton-1]
                 Button.bar     = Box(Button.container    , "bar", self.homeButtonWidth, self.homeButtonHeight, s=HighlightBarSettings)
                 LastButton.bar = Box(LastButton.container, "bar", self.homeButtonWidth, self.homeButtonHeight, s=BarSettings)
                 #b.x, b.y = 3,3
                 
-                
+                """ highlight the current field: """    
             else:
-                if self.CurrentButton >= NumButtons-1:
-                    self.ButtonList[self.CurrentButton].bar = Box(self.ButtonList[self.CurrentButton].container, "bar", self.homeButtonWidth, self.homeButtonHeight, s=BarSettings)
-                    self.CurrentField = -1
-                    self.CurrentButton = -1
+                """ reset counter after last button: """
+                if self.ActiveButton >= NumButtons-1:
+                    self.ButtonList[self.ActiveButton].bar = Box(self.ButtonList[self.ActiveButton].container, "bar", self.homeButtonWidth, self.homeButtonHeight, s=BarSettings)
+                    self.ActiveField = -1
+                    self.ActiveButton = -1
                     
-                self.CurrentField = self.CurrentField + 1
+                self.ActiveField = self.ActiveField + 1
                 
-                Field     = self.grid.fields[self.CurrentField]
-                LastField = self.grid.fields[self.CurrentField-1]
+                Field     = self.grid.fields[self.ActiveField]
+                LastField = self.grid.fields[self.ActiveField-1]
                 a = self.grid
-                print self.CurrentField+1, Field.text
+                print self.ActiveField+1, Field.text
                 self.playName(unicode(self.pathPrefix + self.pathForField(Field.index)))
             
                 #Field.startHighlight()
-                LastField.color = self.ColorOld
-                self.ColorOld = Field.color
-                Field.color = '#F00000'
+                #LastField.color = self.ColorOld
+                LastField.color = "#7f7f7f"
+                Field.color = self.grid.FieldColors[self.ActiveField]
+                #self.ColorOld = Field.color
+                #Field.color = '#F00000'
                 
-                
-            
                 
             self.TimeOld  = TimeNow
         
